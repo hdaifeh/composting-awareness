@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>From awareness to behaviour: who ends up composting</title>
+<style>
+  :root{
+    box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+    --bg:#f6f5f1;--card:#ffffff;--ink:#1d1d1b;--mut:#6a6a64;--line:#e2e0d8;
+    --accent:#3b6d9a;--accentw:#e8f0f7;
+    --none:#C0392B;--partial:#E8C33A;--full:#27AE60;
+    --noneb:#fbe8e6;--partialb:#fbf4d8;--fullb:#e4f4ea;
+    --cycle:#111111;color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#1a1a18;--card:#242422;--ink:#ececE6;--mut:#a0a09a;--line:#3a3a36;
+    --accent:#7fb0d8;--accentw:#1f2d38;
+    --noneb:#3a211e;--partialb:#38311a;--fullb:#1b3326;--cycle:#f2f2f2;}}
+  :root[data-theme="dark"]{--bg:#1a1a18;--card:#242422;--ink:#ececE6;--mut:#a0a09a;--line:#3a3a36;
+    --accent:#7fb0d8;--accentw:#1f2d38;--noneb:#3a211e;--partialb:#38311a;--fullb:#1b3326;--cycle:#f2f2f2;}
+  *{box-sizing:inherit}html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 64px}
+  h1{font-size:23px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 22px;max-width:72ch}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+  .ctrl{margin:0 0 18px}.ctrl:last-child{margin-bottom:0}
+  .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin:0 0 7px}
+  .lab b{font-weight:600}
+  .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;font-size:15px}
+  input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:52px;padding:8px 6px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:9px;font-size:14px;cursor:pointer;font-variant-numeric:tabular-nums;transition:.12s}
+  .seg button:hover{border-color:var(--accent)}
+  .seg button[aria-pressed=true]{background:var(--accentw);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .hint{font-size:12.5px;color:var(--mut);margin:6px 0 0;line-height:1.45}
+  .btn{width:100%;padding:11px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:.12s;margin:0 0 9px}
+  .btn:hover{filter:brightness(1.07)}.btn.sec{background:transparent;color:var(--accent)}.btn.sec:hover{background:var(--accentw)}
+  .row2{display:flex;gap:9px}.row2 .btn{margin-bottom:0}
+  canvas{display:block;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  .panelttl{font-size:13px;color:var(--mut);margin:0 0 9px}
+  .panelttl i{font-style:italic}
+  /* tier counters */
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}
+  .tier{border-radius:11px;padding:11px 12px;border:1px solid var(--line)}
+  .tier.none{background:var(--noneb)}.tier.partial{background:var(--partialb)}.tier.full{background:var(--fullb)}
+  .tier .k{font-size:12px;font-weight:600}
+  .tier.none .k{color:var(--none)}.tier.partial .k{color:#9a7d10}.tier.full .k{color:var(--full)}
+  .tier .v{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+  .tier .p{font-size:12px;color:var(--mut);margin-top:1px}
+  /* big composting readout */
+  .compbox{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin:0 0 16px}
+  .compmain{background:var(--fullb);border:1px solid var(--full);border-radius:12px;padding:14px 16px}
+  .compmain .k{font-size:13px;color:var(--full);font-weight:600}
+  .compmain .v{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;color:var(--ink)}
+  .compmain .p{font-size:12.5px;color:var(--mut);margin-top:3px;line-height:1.4}
+  .compside{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}
+  .compside .k{font-size:12px;color:var(--mut)}
+  .compside .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+  .bar{height:16px;border-radius:8px;background:var(--line);overflow:hidden;display:flex;margin:14px 0 4px}
+  .bar>div{height:100%}
+  .barw{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mut);margin-top:3px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin:10px 2px 0;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .sq{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .ring{width:11px;height:11px;border-radius:50%;display:inline-block;border:2.5px solid var(--cycle);box-sizing:border-box}
+  .read{margin-top:18px;font-size:14.5px}.read p{margin:0 0 10px}.read b{font-weight:600}
+  .tag{display:inline-block;background:var(--accentw);color:var(--accent);border-radius:6px;padding:1px 7px;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .foot{color:var(--mut);font-size:12.5px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>From awareness to behaviour: who ends up composting</h1>
+  <p class="sub">The same opinion dynamics as before, now with the model's two thresholds. Each household is coloured by its behavioural tier, and the counter tracks how many households actually compost: only the full tier composts, and only if it owns a composter. Owning is not using.</p>
+
+  <div class="grid">
+    <!-- CONTROLS -->
+    <div class="card">
+      <div class="ctrl">
+        <div class="lab"><b>F · neighbours observed</b></div>
+        <div class="seg" id="segF">
+          <button data-f="1" aria-pressed="true">1</button>
+          <button data-f="2">2</button>
+          <button data-f="4">4</button>
+          <button data-f="8">8</button>
+        </div>
+        <p class="hint">F = 1 fragments the network and can keep a full-tier minority alive; F ≥ 2 drives one consensus.</p>
+      </div>
+      <div class="ctrl">
+        <div class="lab"><b>β · resistance to change</b><span class="val" id="vB">0.95</span></div>
+        <input type="range" id="rB" min="0" max="0.99" step="0.01" value="0.95">
+      </div>
+      <div class="ctrl">
+        <div class="lab"><b>μ<sub>E</sub><sup>N</sup> · initial mean</b><span class="val" id="vM">0.50</span></div>
+        <input type="range" id="rM" min="0.05" max="0.95" step="0.05" value="0.50">
+      </div>
+      <div class="ctrl">
+        <div class="lab"><b>σ<sub>E</sub> · dispersion</b><span class="val" id="vS">0.30</span></div>
+        <input type="range" id="rS" min="0.05" max="0.60" step="0.05" value="0.30">
+      </div>
+      <div class="ctrl">
+        <div class="lab"><b>Composter coverage</b><span class="val" id="vC">30%</span></div>
+        <input type="range" id="rC" min="0" max="100" step="5" value="30">
+        <p class="hint">Share of households that own a composter. The thesis baseline is 10.5%; set to 100% for the "accessibility for all" action.</p>
+      </div>
+      <div class="ctrl">
+        <div class="lab"><b>N · households shown</b><span class="val" id="vN">150</span></div>
+        <input type="range" id="rN" min="40" max="400" step="10" value="150">
+      </div>
+      <div class="row2">
+        <button class="btn" id="play"><span id="playlbl">▶ Play</span></button>
+        <button class="btn sec" id="step">Step</button>
+      </div>
+      <button class="btn sec" id="rebuild">↻ New random network</button>
+    </div>
+
+    <!-- VISUALS -->
+    <div>
+      <!-- composting headline -->
+      <div class="compbox">
+        <div class="compmain">
+          <div class="k">Households composting right now</div>
+          <div class="v" id="cNow">—</div>
+          <div class="p" id="cNowP"></div>
+        </div>
+        <div class="compside">
+          <div class="k">At the start (t = 0)</div>
+          <div class="v" id="cStart">—</div>
+          <div class="k" style="margin-top:8px">Change</div>
+          <div class="v" id="cDelta">—</div>
+        </div>
+      </div>
+
+      <!-- tier counts -->
+      <div class="tiers">
+        <div class="tier none"><div class="k">None</div><div class="v" id="tN">—</div><div class="p">E &lt; 0.3 · no sorting</div></div>
+        <div class="tier partial"><div class="k">Partial</div><div class="v" id="tP">—</div><div class="p">0.3–0.8 · bin only</div></div>
+        <div class="tier full"><div class="k">Full</div><div class="v" id="tF">—</div><div class="p">E ≥ 0.8 · composts first</div></div>
+      </div>
+
+      <!-- composition bar -->
+      <div class="bar" id="bar"><div class="none" style="background:var(--none)"></div><div class="partial" style="background:var(--partial)"></div><div class="full" style="background:var(--full)"></div></div>
+      <div class="barw"><span>population composition</span><span id="muA">μ<sub>E</sub><sup>A</sup> = —</span></div>
+
+      <div class="card" style="padding:14px;margin-top:14px">
+        <div class="panelttl"><i>Influence network</i> — nodes coloured by tier. A ring = on a closed cycle. A dot inside = owns a composter.</div>
+        <canvas id="net" height="320"></canvas>
+      </div>
+
+      <div class="card" style="padding:14px;margin-top:14px">
+        <div class="panelttl"><i>Awareness trajectories</i> — bands show the three tiers; lines are each household's E<sub>i</sub>.</div>
+        <canvas id="traj" height="200"></canvas>
+      </div>
+
+      <div class="legend">
+        <span><span class="sq" style="background:var(--none)"></span>none</span>
+        <span><span class="sq" style="background:var(--partial)"></span>partial</span>
+        <span><span class="sq" style="background:var(--full)"></span>full</span>
+        <span><span class="ring"></span>on a cycle</span>
+        <span>· small dot = has a composter</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="read card" style="margin-top:18px"><div id="story"></div></div>
+
+  <p class="foot">Composting rule, exactly as in the model: a household composts only when its awareness reaches the full tier (E ≥ 0.8) and it owns a composter. Convergence can move the whole population across a threshold at once, which is why the composting count can jump up or collapse to near zero even though nobody's equipment changed. Everything is the awareness layer only; waste volumes and capacity are omitted.</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let cssV=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+let N=150,F=1,beta=0.95,mu=0.5,sig=0.3,cov=0.30;
+let out=[],E=[],E0=[],pos=[],onCyc=[],hasComp=[],nComp=0,history=[],t=0,playing=false,raf=null;
+
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function tier(e){return e>=0.8?2:(e>=0.3?1:0);} // 0 none,1 partial,2 full
+const TCOL=['var(--none)','var(--partial)','var(--full)'];
+
+function build(){
+  out=[];E=[];E0=[];pos=[];hasComp=[];history=[];t=0;
+  for(let i=0;i<N;i++){
+    let e=Math.max(0,Math.min(1,mu+sig*gauss()));E.push(e);E0.push(e);
+    hasComp.push(Math.random()<cov);
+    const picked=new Set();
+    while(picked.size<Math.min(F,N-1)){let j=Math.floor(Math.random()*N);if(j!==i)picked.add(j);}
+    out.push([...picked]);
+  }
+  structure();layout();history=[E.slice()];t=0;render();updateAll();story();
+}
+function structure(){
+  const par=[...Array(N).keys()];const find=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x];}return x;};
+  for(let i=0;i<N;i++)for(const j of out[i])par[find(i)]=find(j);
+  const roots=new Set();for(let i=0;i<N;i++)roots.add(find(i));nComp=roots.size;
+  onCyc=Array(N).fill(false);
+  if(F===1){for(let s=0;s<N;s++){const seen=new Map();let u=s;const path=[];
+    while(!seen.has(u)){seen.set(u,path.length);path.push(u);u=out[u][0];}
+    if(path.slice(seen.get(u)).includes(s))onCyc[s]=true;}}
+  else{let idx=0;const ind=Array(N).fill(-1),low=Array(N).fill(0),on=Array(N).fill(false),st=[];
+    const strong=v=>{ind[v]=low[v]=idx++;st.push(v);on[v]=true;
+      for(const w of out[v]){if(ind[w]<0){strong(w);low[v]=Math.min(low[v],low[w]);}else if(on[w])low[v]=Math.min(low[v],ind[w]);}
+      if(low[v]===ind[v]){const c=[];let w;do{w=st.pop();on[w]=false;c.push(w);}while(w!==v);if(c.length>1)c.forEach(x=>onCyc[x]=true);}};
+    for(let v=0;v<N;v++)if(ind[v]<0)strong(v);}
+}
+function layout(){pos=[];for(let i=0;i<N;i++)pos.push([Math.random(),Math.random()]);
+  const K=0.9/Math.sqrt(N);
+  for(let it=0;it<80;it++){const fx=Array(N).fill(0),fy=Array(N).fill(0);
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){let dx=pos[i][0]-pos[j][0],dy=pos[i][1]-pos[j][1];let d2=dx*dx+dy*dy+1e-4;let f=K*K/d2*0.02;fx[i]+=dx*f;fy[i]+=dy*f;fx[j]-=dx*f;fy[j]-=dy*f;}
+    for(let i=0;i<N;i++)for(const j of out[i]){let dx=pos[i][0]-pos[j][0],dy=pos[i][1]-pos[j][1];let d=Math.sqrt(dx*dx+dy*dy)+1e-4;let f=d*0.06;fx[i]-=dx/d*f;fy[i]-=dy/d*f;fx[j]+=dx/d*f;fy[j]+=dy/d*f;}
+    for(let i=0;i<N;i++){pos[i][0]=Math.max(.02,Math.min(.98,pos[i][0]+Math.max(-.05,Math.min(.05,fx[i]))));pos[i][1]=Math.max(.02,Math.min(.98,pos[i][1]+Math.max(-.05,Math.min(.05,fy[i]))));}}
+}
+function step(){const nx=E.map((e,i)=>{let s=0;for(const j of out[i])s+=E[j];s/=out[i].length;let v=beta*e+(1-beta)*s;return Math.max(0,Math.min(1,v));});E=nx;t++;history.push(E.slice());if(history.length>600)history.shift();render();updateAll();}
+function counts(arr){let c=[0,0,0];for(const e of arr)c[tier(e)]++;return c;}
+function composting(arr){let n=0;for(let i=0;i<N;i++)if(tier(arr[i])===2&&hasComp[i])n++;return n;}
+function meanA(arr){let s=0;for(const e of arr)s+=e;return s/N;}
+
+function updateAll(){
+  const c=counts(E);$('tN').textContent=c[0];$('tP').textContent=c[1];$('tF').textContent=c[2];
+  const bar=$('bar').children;bar[0].style.width=(100*c[0]/N)+'%';bar[1].style.width=(100*c[1]/N)+'%';bar[2].style.width=(100*c[2]/N)+'%';
+  $('muA').innerHTML='μ<sub>E</sub><sup>A</sup> = '+meanA(E).toFixed(3);
+  const now=composting(E),start=composting(E0),full=c[2];
+  $('cNow').textContent=now;
+  $('cNowP').innerHTML= full===0?'no household is in the full tier':
+     (now+' of '+full+' full-tier households own a composter'+(full>now?' ('+(full-now)+' want to but can\u2019t)':''));
+  $('cStart').textContent=start;
+  const d=now-start;$('cDelta').textContent=(d>0?'+':'')+d;
+  $('cDelta').style.color = d>0?'var(--full)':(d<0?'var(--none)':'var(--ink)');
+}
+
+function render(){drawNet();drawTraj();}
+function drawNet(){
+  const c=$('net'),w=c.clientWidth,h=320,dpr=window.devicePixelRatio||1;
+  c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const pad=22,PX=a=>pad+a*(w-2*pad),PY=a=>pad+a*(h-2*pad);
+  x.strokeStyle=cssV('--line');x.lineWidth=0.8;x.globalAlpha=0.7;
+  for(let i=0;i<N;i++)for(const j of out[i]){const x1=PX(pos[i][0]),y1=PY(pos[i][1]),x2=PX(pos[j][0]),y2=PY(pos[j][1]);const dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy)||1,r=7;const ex=x2-dx/d*r,ey=y2-dy/d*r;x.beginPath();x.moveTo(x1,y1);x.lineTo(ex,ey);x.stroke();if(N<=170){const a=Math.atan2(dy,dx);x.beginPath();x.moveTo(ex,ey);x.lineTo(ex-4*Math.cos(a-0.4),ey-4*Math.sin(a-0.4));x.moveTo(ex,ey);x.lineTo(ex-4*Math.cos(a+0.4),ey-4*Math.sin(a+0.4));x.stroke();}}
+  x.globalAlpha=1;const r=N<=130?7.5:(N<=260?5.6:4.4);
+  for(let i=0;i<N;i++){const px=PX(pos[i][0]),py=PY(pos[i][1]);
+    x.beginPath();x.arc(px,py,r,0,7);x.fillStyle=cssV(['--none','--partial','--full'][tier(E[i])]);x.fill();
+    if(onCyc[i]){x.lineWidth=2.4;x.strokeStyle=cssV('--cycle');}else{x.lineWidth=0.8;x.strokeStyle=cssV('--line');}x.stroke();
+    if(hasComp[i]){x.beginPath();x.arc(px,py,Math.max(1.6,r*0.32),0,7);x.fillStyle=cssV('--card');x.fill();}
+  }
+}
+function drawTraj(){
+  const c=$('traj'),w=c.clientWidth,h=200,dpr=window.devicePixelRatio||1;
+  c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const pl=34,pr=10,pt=8,pb=20,W=w-pl-pr,H=h-pt-pb;const Y=v=>pt+H-v*H;
+  // tier bands
+  x.globalAlpha=0.14;
+  x.fillStyle=cssV('--none');x.fillRect(pl,Y(0.3),W,H-(H*0.3));
+  x.fillStyle=cssV('--partial');x.fillRect(pl,Y(0.8),W,H*0.5);
+  x.fillStyle=cssV('--full');x.fillRect(pl,Y(1),W,H*0.2);
+  x.globalAlpha=1;
+  x.strokeStyle=cssV('--line');x.lineWidth=1;x.beginPath();x.moveTo(pl,pt);x.lineTo(pl,pt+H);x.lineTo(pl+W,pt+H);x.stroke();
+  x.fillStyle=cssV('--mut');x.font='11px -apple-system,sans-serif';
+  [0,0.3,0.8,1].forEach(v=>{x.fillText(v.toFixed(1),6,Y(v)+3);});
+  const n=history.length,xx=k=>pl+(n<=1?0:k/(n-1))*W;
+  for(let i=0;i<N;i++){const oc=onCyc[i];x.strokeStyle=cssV(['--none','--partial','--full'][tier(E0[i])]);x.globalAlpha=oc?1:0.4;x.lineWidth=oc?1.8:0.7;x.beginPath();for(let k=0;k<n;k++){const y=Y(history[k][i]);k?x.lineTo(xx(k),y):x.moveTo(xx(k),y);}x.stroke();}
+  x.globalAlpha=1;
+}
+
+function story(){
+  const full=counts(E)[2],now=composting(E);
+  let m='';
+  if(F===1){m=`<p>With <span class="tag">F = 1</span> the network breaks into <b>${nComp} components</b>, each ruled by one cycle. The ringed households decide their component's tier; everyone feeding in is dragged to it. This is how a sparse network can <b>keep a full-tier pocket composting</b> even when most of the territory has converged into a lower tier.</p>`;}
+  else{m=`<p>With <span class="tag">F = ${F}</span> the whole population converges to a single tier. If that shared value lands above 0.8, <b>everyone</b> becomes full and every composter-owner composts. If it lands below, composting can vanish entirely even though the equipment never changed.</p>`;}
+  m+=`<p>Right now the consensus puts the population mostly in the <b>${['none','partial','full'][counts(E).indexOf(Math.max(...counts(E)))]}</b> tier, and <b>${now}</b> household${now===1?'':'s'} ${now===1?'is':'are'} composting${full>now?` — ${full-now} more reached the full tier but own no composter`:''}. Raise composter coverage toward 100% to see how many of the willing are currently blocked by equipment.</p>`;
+  $('story').innerHTML=m;
+}
+
+$('segF').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...$('segF').children].forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');F=+b.dataset.f;build();});
+$('rB').addEventListener('input',e=>{beta=+e.target.value;$('vB').textContent=beta.toFixed(2);E=E0.slice();t=0;history=[E.slice()];render();updateAll();story();});
+$('rM').addEventListener('input',e=>{mu=+e.target.value;$('vM').textContent=mu.toFixed(2);build();});
+$('rS').addEventListener('input',e=>{sig=+e.target.value;$('vS').textContent=sig.toFixed(2);build();});
+$('rC').addEventListener('input',e=>{cov=+e.target.value/100;$('vC').textContent=e.target.value+'%';for(let i=0;i<N;i++)hasComp[i]=Math.random()<cov;render();updateAll();story();});
+$('rN').addEventListener('input',e=>{N=+e.target.value;$('vN').textContent=N;build();});
+$('step').addEventListener('click',()=>{stop();step();});
+$('rebuild').addEventListener('click',()=>{stop();build();});
+$('play').addEventListener('click',()=>{playing?stop():start();});
+function start(){playing=true;$('playlbl').textContent='❚❚ Pause';last=0;loop();}
+function stop(){playing=false;$('playlbl').textContent='▶ Play';if(raf)cancelAnimationFrame(raf);}
+let acc=0,last=0;
+function loop(ts){if(!playing)return;if(!last)last=ts;acc+=ts-last;last=ts;if(acc>80){step();acc=0;let mn=1,mx=0;for(const e of E){if(e<mn)mn=e;if(e>mx)mx=e;}if(mx-mn<0.0006&&t>8)stop();}raf=requestAnimationFrame(loop);}
+window.addEventListener('resize',render);
+build();
+</script>
+</body>
+</html>
